@@ -193,7 +193,7 @@ async function cleanView(options) {
         res.push(t);
       }
     }
-  }, { decodeEntities: true });
+  }, { decodeEntities: false });
 
   // 主动结束html解析
   const endParse = () => {

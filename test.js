@@ -1,10 +1,11 @@
 'use strict';
 
 const cleanView = require('./');
-// const { rp } = require('./utils');
+const { rp } = require('./utils');
 
-const link = 'https://mp.weixin.qq.com/s/iMUNS3JXXFk-aA-hXH6NNg';
-// const link = 'https://www.jianshu.com/p/490ad54e7507';
+// const link = 'https://mp.weixin.qq.com/s/vK3wQBUU6b5wDtLqRgrhSw';
+const link = 'https://www.jikeyuedu.com/blog/20170801-programming-specification-of-javascript.html';
+// const link = 'https://mp.weixin.qq.com/s?__biz=MjM5NjI4MDU4NA==&mid=2651286992&idx=1&sn=45880f15d95c9dcc5b108abb980ca076&chksm=bd186db78a6fe4a1ed6bbd58895bd832fb19df587df590591cc0200319ca4d84f54fd81572ad&scene=38#wechat_redirect';
 
 describe('返回干净的页面视图', function() {
   this.timeout(10000);
@@ -20,8 +21,10 @@ describe('返回干净的页面视图', function() {
   // });
 
   it('筛选目标元素，自定义替换逻辑', async function () {
+    const html = await rp(link);
+    const start = Date.now();
     const res = await cleanView({
-      uri: link,
+      html,
       // target: 'div.article',
       target: 'div#page-content',
       overides: {
@@ -39,6 +42,7 @@ describe('返回干净的页面视图', function() {
       }
     });
     console.log(res);
+    console.log('cost:', Date.now() - start, 'ms');
   });
 
   // it('通过html调用', async function() {

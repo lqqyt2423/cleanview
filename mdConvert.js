@@ -1,5 +1,31 @@
 'use strict';
 
+const LI_HEADER = 'CLEAN_LI_HEADER'
+
+const unescape = (function() {
+  const escapeMap = {
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": "\"",
+    "&#x27;": "'",
+    "&#x60;": "`",
+    "&nbsp;": " ",
+    "&#8202;": " "
+  };
+
+  const source = `(?:${Object.keys(escapeMap).join('|')})`;
+  const testRegexp = RegExp(source);
+  const replaceRegexp = RegExp(source, 'g');
+  const escaper = function(match) {
+    return escapeMap[match];
+  }
+  return function(string) {
+    string = string || '';
+    return testRegexp.test(string) ? string.replace(replaceRegexp, escaper) : string;
+  };
+})();
+
 const blockElements = [
   'address', 'article', 'aside', 'audio', 'blockquote', 'body', 'canvas',
   'center', 'dd', 'dir', 'div', 'dl', 'dt', 'fieldset', 'figcaption',
@@ -8,6 +34,16 @@ const blockElements = [
   'noframes', 'noscript', 'ol', 'output', 'p', 'pre', 'section', 'table',
   'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'ul'
 ];
+
+const strongHandler = (text) => {
+  text = text.trim();
+  if (!text) return text;
+
+  // 去除嵌套的strong
+  if (/^\s*\*\*.*\*\*\s*$/.test(text)) return text;
+
+  return `**${text}**`;
+};
 
 const elementsConverter = {
   h1(text) {
@@ -40,33 +76,39 @@ const elementsConverter = {
     return src ? '![' + alt + ']' + '(' + src + titlePart + ')' : '';
   },
   strong(text) {
-    text = text.trim();
-    if (!text) return text;
-    // 去除嵌套的strong
-    if (/^\s*\*\*.*\*\*\s*$/.test(text)) return text;
-    return `**${text}**`;
+    return strongHandler(text);
   },
   b(text) {
+    return strongHandler(text);
+  },
+  em(text) {
     text = text.trim();
     if (!text) return text;
-    // 去除嵌套的strong
-    if (/^\s*\*\*.*\*\*\s*$/.test(text)) return text;
-    return `**${text}**`;
+    return `_${text}_`;
   },
   li(text) {
-    return `- ${text}`;
+    return `${LI_HEADER} ${text}`;
   },
-  // 替换多余的换行
   ul(text) {
-    text = text.replace(/\n-/g, '-');
+    // 替换多余的换行
+    text = text.replace(new RegExp(`\n${LI_HEADER}`, 'g'), LI_HEADER);
+
+    text = text.replace(new RegExp(LI_HEADER, 'g'), '-');
     return text;
   },
-  // 替换多余的换行
+
   ol(text) {
-    text = text.replace(/\n-/g, '-');
+    // 替换多余的换行
+    text = text.replace(new RegExp(`\n${LI_HEADER}`, 'g'), LI_HEADER);
+
+    let index = 1;
+    text = text.replace(new RegExp(LI_HEADER, 'g'), () => {
+      return `${index++}.`;
+    });
     return text;
   },
 };
+
 const elementsConverterArray = Object.keys(elementsConverter);
 
 /**
@@ -104,12 +146,25 @@ function mdConvert(node) {
     if (!/\n+$/.test(res)) {
       res = res + '\n\n';
     }
+
+    // 替换空格等字符
+    res = unescape(res);
+
+    // 去除一个段落中嵌套的 strong
+    res = res.replace(/^(\s*\*\*)(.*[*]+.*)(\*\*\s*)$/, (m, a, b, c) => {
+      b = b.replace(/\*{2,}/g, '');
+      return `${a}${b}${c}`;
+    });
+
+  // 行内元素
   } else {
-    // 行内元素
-    if (!/\s+$/.test(res)) {
-      res = res + ' ';
-    }
+
+    // 为什么后面要加空格呢？
+    // if (!/\s+$/.test(res)) {
+    //   res = res + ' ';
+    // }
   }
+
   return res;
 }
 
